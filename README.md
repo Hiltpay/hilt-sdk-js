@@ -1,4 +1,4 @@
-# `@hilt/sdk`
+# `@hiltpay/sdk`
 
 Official TypeScript SDK for Hilt's supported merchant contract.
 
@@ -19,7 +19,7 @@ It is designed for Node 18+ and modern runtimes with `fetch`.
 ## Install
 
 ```bash
-npm install @hilt/sdk
+npm install @hiltpay/sdk
 ```
 
 If you want a direct bundle instead of npm:
@@ -45,7 +45,7 @@ sha256sum -c hilt-sdk-1.0.0.tgz.sha256
 ## Example
 
 ```ts
-import { HiltClient } from "@hilt/sdk";
+import { HiltClient } from "@hiltpay/sdk";
 
 const client = new HiltClient({
   apiKey: process.env.HILT_API_KEY!,

@@ -1,5 +1,5 @@
 {
-  "name": "@hilt/sdk",
+  "name": "@hiltpay/sdk",
   "version": "1.0.0",
   "description": "Official TypeScript SDK for Hilt's supported merchant contract.",
   "type": "module",
