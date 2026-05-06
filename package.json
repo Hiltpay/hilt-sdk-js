@@ -1,0 +1,50 @@
+{
+  "name": "@hilt/sdk",
+  "version": "1.0.0",
+  "description": "Official TypeScript SDK for Hilt's supported merchant contract.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "homepage": "https://docs.hilt.so/developers/sdks",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hiltpay/hilt-sdk-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Hiltpay/hilt-sdk-js/issues",
+    "email": "support@hilt.so"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "prebuild": "node -e \"require('node:fs').rmSync('dist',{ recursive: true, force: true })\"",
+    "build": "tsc -p tsconfig.json"
+  },
+  "keywords": [
+    "hilt",
+    "solana",
+    "payments",
+    "checkout",
+    "sdk"
+  ],
+  "license": "UNLICENSED",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
