@@ -1,7 +1,7 @@
 {
   "name": "@hiltpay/sdk",
-  "version": "1.0.0",
-  "description": "Official TypeScript SDK for Hilt's supported merchant contract.",
+  "version": "1.0.1",
+  "description": "Official TypeScript SDK for Hilt Pay Workspace and Hilt Pay API.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -33,6 +33,9 @@
   "keywords": [
     "hilt",
     "solana",
+    "x402",
+    "agent",
+    "entitlements",
     "payments",
     "checkout",
     "sdk"

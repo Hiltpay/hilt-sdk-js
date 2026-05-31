@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+- Add Hilt Pay API agent bootstrap, setup manifest, billing checkout, and entitlement helpers
+- Add Hilt Pay API payment proof and payment session helper types
+- Refresh public README language for Workspace and API usage
+
 ## 1.0.0
 
 - Initial public TypeScript SDK for the supported Hilt merchant contract

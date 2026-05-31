@@ -1,6 +1,6 @@
 # `@hiltpay/sdk`
 
-Official TypeScript SDK for Hilt's supported merchant contract.
+Official TypeScript SDK for Hilt Pay Workspace and Hilt Pay API.
 
 Source: `https://github.com/Hiltpay/hilt-sdk-js`
 
@@ -13,6 +13,7 @@ This SDK wraps the same public merchant routes documented on `docs.hilt.so`:
 - receipts
 - support
 - webhooks
+- Hilt Pay API apps, products, entitlements, setup manifests, and agent bootstrap
 
 It is designed for Node 18+ and modern runtimes with `fetch`.
 
@@ -22,27 +23,45 @@ It is designed for Node 18+ and modern runtimes with `fetch`.
 npm install @hiltpay/sdk
 ```
 
-If you want a direct bundle instead of npm:
-
-```bash
-npm install https://www.hilt.so/downloads/hilt-sdk-latest.tgz
-```
-
-If you want a pinned direct bundle:
-
-```bash
-npm install https://www.hilt.so/downloads/hilt-sdk-1.0.0.tgz
-```
-
-### Verify a direct-bundle checksum
-
-```bash
-curl -O https://www.hilt.so/downloads/hilt-sdk-1.0.0.tgz
-curl -O https://www.hilt.so/downloads/hilt-sdk-1.0.0.tgz.sha256
-sha256sum -c hilt-sdk-1.0.0.tgz.sha256
-```
+For source review and approved public snapshots, use the GitHub repository and
+`hilt-developer-assets` repository.
 
 ## Example
+
+### Agent-first Hilt Pay API bootstrap
+
+Public launch settlement is Solana USDC. The `payment_protocol: "x402"` field describes the protected-resource HTTP 402 flow.
+
+```ts
+import { HiltClient } from "@hiltpay/sdk";
+
+const publicClient = new HiltClient();
+
+const setup = await publicClient.payApi.agentBootstrap({
+  agent_name: "Acme API Builder",
+  agent_platform: "cursor",
+  requested_use_case: "Protect /ai/pro with Hilt Pay API",
+  requested_permissions: ["access:read", "access:write", "access:webhooks"]
+});
+
+await publicClient.payApi.submitAgentSetupManifest(setup.setup_intent.id, {
+  setup_token: setup.setup_token,
+  manifest: {
+    app: { name: "Acme AI" },
+    product: {
+      external_product_id: "pro-api",
+      title: "Pro API access",
+      amount_minor_units: 79000000,
+      default_rail: "solana_usdc"
+    },
+    payment_protocol: "x402",
+    settlement_rail: "solana_usdc",
+    protected_resource: { url: "https://api.acme.test/ai/pro" }
+  }
+});
+```
+
+### Merchant workspace product
 
 ```ts
 import { HiltClient } from "@hiltpay/sdk";

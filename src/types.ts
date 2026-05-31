@@ -248,6 +248,246 @@ export interface WebhookEventsParams {
   per_page?: number;
 }
 
+export interface HiltAccessRail extends HiltApiRecord {
+  id: string;
+  display_name: string;
+  status:
+    | "production_available"
+    | "private_alpha_available"
+    | "private_alpha_target"
+    | "sandbox_available"
+    | "review_required"
+    | "kill_switched"
+    | "verified_current"
+    | "beta_disabled"
+    | "scaffold_disabled"
+    | "experimental_disabled"
+    | "conditional_review"
+    | string;
+  network: string;
+  settlement_asset: string;
+  live_capable: boolean;
+  default_enabled: boolean;
+  supports_sandbox: boolean;
+  supports_live: boolean;
+  requires_review: boolean;
+  production_enabled: boolean;
+  sandbox_enabled: boolean;
+  supports_hosted_session: boolean;
+  supports_direct_http_402: boolean;
+  confirmation_source: string;
+  confirmation_policy?: string | null;
+  replay_protection_policy?: string | null;
+  settlement_verification_status?: string | null;
+  entitlement_activation_support?: string | null;
+  kill_switch_state?: string | null;
+  allowlisted_chains?: string[];
+  docs_url?: string | null;
+  disabled_reason?: string | null;
+}
+
+export interface AccessRailSettingUpdateInput {
+  enabled?: boolean;
+  payout_address?: string | null;
+  label?: string | null;
+  mode?: "live" | "sandbox" | "disabled" | string;
+  metadata?: Record<string, HiltJsonValue>;
+}
+
+export interface AccessAgentBootstrapInput {
+  agent_name: string;
+  agent_platform?: string | null;
+  requested_use_case?: string | null;
+  contact_email?: string | null;
+  external_reference?: string | null;
+  requested_permissions?: string[];
+  ttl_hours?: number;
+  metadata?: Record<string, HiltJsonValue>;
+}
+
+export interface AccessAgentSetupStatusInput {
+  setup_token: string;
+}
+
+export interface AccessAgentSetupManifestInput {
+  setup_token: string;
+  manifest: Record<string, HiltJsonValue>;
+}
+
+export interface AccessAgentSetupApproveInput {
+  setup_token: string;
+  approved_permissions?: string[] | null;
+  issue_live_key?: boolean;
+  live_key_name?: string | null;
+  confirm_owner_approval: boolean;
+}
+
+export interface AccessSetupReadinessParams {
+  access_app_id?: string;
+  product_id?: string;
+  external_product_id?: string;
+  mode?: "live" | "sandbox" | string;
+}
+
+export interface AccessProductAvailableRailsParams {
+  product_id?: string;
+  external_product_id?: string;
+  mode?: "live" | "sandbox" | string;
+}
+
+export interface AccessProductAvailableRailsByIdParams {
+  mode?: "live" | "sandbox" | string;
+}
+
+export interface AccessAppCreateInput {
+  name: string;
+  external_app_id?: string | null;
+  default_rail?: string;
+  rail?: string | null;
+  live_mode?: boolean;
+  confirm_live_mode?: boolean;
+  metadata?: Record<string, HiltJsonValue>;
+}
+
+export interface AccessProductCreateInput {
+  access_app_id?: string | null;
+  external_product_id?: string | null;
+  existing_product_id?: string | null;
+  title?: string | null;
+  description?: string | null;
+  image_url?: string | null;
+  amount_minor_units?: number | null;
+  merchant_wallet?: string | null;
+  entitlement_duration_days?: number | null;
+  default_rail?: string;
+  allowed_rails?: string[] | null;
+  rail?: string | null;
+  status?: "active" | "paused" | string;
+  live_mode_confirmed?: boolean;
+  metadata?: Record<string, HiltJsonValue>;
+}
+
+export interface AccessPaymentSessionCreateInput {
+  product_id?: string | null;
+  external_product_id?: string | null;
+  external_customer_id?: string | null;
+  wallet?: string | null;
+  email?: string | null;
+  amount_minor_units?: number | null;
+  rail?: string | null;
+  payment_protocol?: "hosted_checkout" | "wallet_transfer" | "x402" | string | null;
+  settlement_rail?: string | null;
+  settlement_rail_id?: string | null;
+  metadata?: Record<string, HiltJsonValue>;
+}
+
+export interface AccessPaymentProofSubmitInput {
+  product_id?: string | null;
+  external_product_id?: string | null;
+  payment_session_id?: string | null;
+  rail: string;
+  proof_type?: string | null;
+  proof_payload: Record<string, HiltJsonValue>;
+  external_customer_id?: string | null;
+  wallet?: string | null;
+  email?: string | null;
+  amount_minor_units?: number | null;
+  livemode?: boolean;
+  metadata?: Record<string, HiltJsonValue>;
+}
+
+export interface AccessEntitlementCheckInput {
+  product_id?: string | null;
+  external_product_id?: string | null;
+  rail?: string | null;
+  external_customer_id?: string | null;
+  wallet?: string | null;
+  email?: string | null;
+  customer_reference?: string | null;
+}
+
+export interface AccessWebhookCreateInput {
+  label: string;
+  url: string;
+  subscribed_events?: string[];
+  product_ids?: string[];
+  metadata?: Record<string, HiltJsonValue>;
+}
+
+export interface AccessBillingStripeCheckoutInput {
+  plan: "starter" | "growth" | "scale";
+  interval?: "monthly" | "yearly";
+  success_url: string;
+  cancel_url: string;
+}
+
+export interface AccessBillingStripeCheckoutResponse {
+  session_id: string;
+  checkout_url: string;
+  plan: "starter" | "growth" | "scale" | string;
+  interval: "monthly" | "yearly" | string;
+}
+
+export interface HiltAccessApp extends HiltApiRecord {
+  id: string;
+  name: string;
+  external_app_id?: string | null;
+  status: string;
+  default_rail: string;
+  live_mode: boolean;
+}
+
+export interface HiltAccessProduct extends HiltApiRecord {
+  id: string;
+  access_app_id?: string | null;
+  product_id: string;
+  external_product_id?: string | null;
+  status: string;
+  default_rail: string;
+  rail_id?: string | null;
+  entitlement_duration_seconds?: number | null;
+  live_mode_confirmed: boolean;
+}
+
+export interface HiltAccessEntitlementCheckResponse extends HiltApiRecord {
+  has_access: boolean;
+  status: string;
+  product_id: string;
+  access_product_id?: string | null;
+  external_product_id?: string | null;
+  rail_id?: string | null;
+  external_customer_id?: string | null;
+  wallet?: string | null;
+  email?: string | null;
+  active_from?: string | null;
+  expires_at?: string | null;
+  receipt_id?: string | null;
+  reason: string;
+  last_payment_id?: string | null;
+  source?: string | null;
+}
+
+export type HiltPayApiRail = HiltAccessRail;
+export type HiltPayApiRailSettingUpdateInput = AccessRailSettingUpdateInput;
+export type HiltPayApiAgentBootstrapInput = AccessAgentBootstrapInput;
+export type HiltPayApiAgentSetupStatusInput = AccessAgentSetupStatusInput;
+export type HiltPayApiAgentSetupManifestInput = AccessAgentSetupManifestInput;
+export type HiltPayApiAgentSetupApproveInput = AccessAgentSetupApproveInput;
+export type HiltPayApiSetupReadinessParams = AccessSetupReadinessParams;
+export type HiltPayApiProductAvailableRailsParams = AccessProductAvailableRailsParams;
+export type HiltPayApiProductAvailableRailsByIdParams = AccessProductAvailableRailsByIdParams;
+export type HiltPayApiAppCreateInput = AccessAppCreateInput;
+export type HiltPayApiProductCreateInput = AccessProductCreateInput;
+export type HiltPayApiPaymentSessionCreateInput = AccessPaymentSessionCreateInput;
+export type HiltPayApiPaymentProofSubmitInput = AccessPaymentProofSubmitInput;
+export type HiltPayApiEntitlementCheckInput = AccessEntitlementCheckInput;
+export type HiltPayApiWebhookCreateInput = AccessWebhookCreateInput;
+export type HiltPayApiBillingStripeCheckoutInput = AccessBillingStripeCheckoutInput;
+export type HiltPayApiBillingStripeCheckoutResponse = AccessBillingStripeCheckoutResponse;
+export type HiltPayApiApp = HiltAccessApp;
+export type HiltPayApiProduct = HiltAccessProduct;
+export type HiltPayApiEntitlementCheckResponse = HiltAccessEntitlementCheckResponse;
+
 export interface HiltProduct extends HiltApiRecord {
   id: string;
   slug: string;

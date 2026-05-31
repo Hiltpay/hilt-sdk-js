@@ -1,5 +1,21 @@
 import type {
   AddSupportMessageInput,
+  AccessAppCreateInput,
+  AccessAgentBootstrapInput,
+  AccessAgentSetupApproveInput,
+  AccessAgentSetupManifestInput,
+  AccessAgentSetupStatusInput,
+  AccessBillingStripeCheckoutInput,
+  AccessBillingStripeCheckoutResponse,
+  AccessEntitlementCheckInput,
+  AccessPaymentProofSubmitInput,
+  AccessPaymentSessionCreateInput,
+  AccessProductAvailableRailsByIdParams,
+  AccessProductAvailableRailsParams,
+  AccessProductCreateInput,
+  AccessRailSettingUpdateInput,
+  AccessSetupReadinessParams,
+  AccessWebhookCreateInput,
   BroadcastPaymentInput,
   CheckoutHandoffCreateInput,
   CheckoutHandoffResolveInput,
@@ -7,6 +23,10 @@ import type {
   ConnectCheckoutInput,
   CreateProductInput,
   CreateSupportTicketInput,
+  HiltAccessApp,
+  HiltAccessEntitlementCheckResponse,
+  HiltAccessProduct,
+  HiltAccessRail,
   HiltClientOptions,
   HiltMembership,
   HiltMembershipListResponse,
@@ -84,6 +104,14 @@ function asQuery<T extends object | undefined>(value: T): Record<string, QueryVa
 
 type AuthMode = NonNullable<HiltRequestOptions["auth"]>;
 
+function idempotencyHeaders(idempotencyKey: string): Record<string, string> {
+  const normalized = idempotencyKey.trim();
+  if (!normalized) {
+    throw new Error("Hilt Pay API write calls require an idempotency key.");
+  }
+  return { "Idempotency-Key": normalized };
+}
+
 export class HiltClient {
   private readonly baseUrl: string;
   private readonly apiKey?: string;
@@ -98,7 +126,7 @@ export class HiltClient {
     this.bearerToken = options.bearerToken?.trim() || undefined;
     this.timeoutMs = options.timeoutMs ?? 20_000;
     this.fetchImpl = options.fetch ?? globalThis.fetch;
-    this.userAgent = options.userAgent ?? "hilt-typescript-sdk/1.0.0";
+    this.userAgent = options.userAgent ?? "hilt-typescript-sdk/1.0.1";
 
     if (typeof this.fetchImpl !== "function") {
       throw new Error("HiltClient requires fetch. Pass a custom fetch implementation if your runtime does not expose one.");
@@ -159,6 +187,100 @@ export class HiltClient {
     get: (paymentId: string) =>
       this.request<HiltPayment>(`/v1/payments/${paymentId}`, { auth: "none" }),
   };
+
+  readonly access = {
+    agentBootstrap: (body: AccessAgentBootstrapInput) =>
+      this.request<Record<string, unknown>>("/v1/access/agent-bootstrap", {
+        method: "POST",
+        body,
+        auth: "none",
+      }),
+    getAgentSetupStatus: (setupIntentId: string, body: AccessAgentSetupStatusInput) =>
+      this.request<Record<string, unknown>>(`/v1/access/agent-bootstrap/${setupIntentId}/status`, {
+        method: "POST",
+        body,
+        auth: "none",
+      }),
+    submitAgentSetupManifest: (setupIntentId: string, body: AccessAgentSetupManifestInput) =>
+      this.request<Record<string, unknown>>(`/v1/access/agent-bootstrap/${setupIntentId}/manifest`, {
+        method: "POST",
+        body,
+        auth: "none",
+      }),
+    approveAgentSetup: (setupIntentId: string, body: AccessAgentSetupApproveInput) =>
+      this.request<Record<string, unknown>>(`/v1/access/agent-bootstrap/${setupIntentId}/approve`, {
+        method: "POST",
+        body,
+        auth: "bearer",
+      }),
+    listRails: () =>
+      this.request<{ default_rail: string; rails: HiltAccessRail[] }>("/v1/access/rails"),
+    listRailSettings: () =>
+      this.request<Record<string, unknown>>("/v1/access/rail-settings"),
+    updateRailSetting: (railId: string, body: AccessRailSettingUpdateInput, idempotencyKey: string) =>
+      this.request<Record<string, unknown>>(`/v1/access/rail-settings/${railId}`, {
+        method: "PUT",
+        body,
+        headers: idempotencyHeaders(idempotencyKey),
+      }),
+    getSetupReadiness: (query?: AccessSetupReadinessParams) =>
+      this.request<Record<string, unknown>>("/v1/access/setup/readiness", { query: asQuery(query) }),
+    getProductAvailableRails: (query?: AccessProductAvailableRailsParams) =>
+      this.request<Record<string, unknown>>("/v1/access/products/available-rails", { query: asQuery(query) }),
+    getProductAvailableRailsById: (productId: string, query?: AccessProductAvailableRailsByIdParams) =>
+      this.request<Record<string, unknown>>(`/v1/access/products/${productId}/available-rails`, {
+        query: asQuery(query),
+      }),
+    createApp: (body: AccessAppCreateInput, idempotencyKey: string) =>
+      this.request<{ app: HiltAccessApp; rail: HiltAccessRail }>("/v1/access/apps", {
+        method: "POST",
+        body,
+        headers: idempotencyHeaders(idempotencyKey),
+      }),
+    createProduct: (body: AccessProductCreateInput, idempotencyKey: string) =>
+      this.request<{
+        access_product: HiltAccessProduct;
+        hilt_product: HiltProduct;
+        rail: HiltAccessRail;
+      }>("/v1/access/products", {
+        method: "POST",
+        body,
+        headers: idempotencyHeaders(idempotencyKey),
+      }),
+    createPaymentSession: (body: AccessPaymentSessionCreateInput, idempotencyKey: string) =>
+      this.request<Record<string, unknown>>("/v1/access/payment-sessions", {
+        method: "POST",
+        body,
+        headers: idempotencyHeaders(idempotencyKey),
+      }),
+    submitPaymentProof: (body: AccessPaymentProofSubmitInput, idempotencyKey: string) =>
+      this.request<Record<string, unknown>>("/v1/access/payment-proofs", {
+        method: "POST",
+        body,
+        headers: idempotencyHeaders(idempotencyKey),
+      }),
+    checkEntitlement: (body: AccessEntitlementCheckInput) =>
+      this.request<HiltAccessEntitlementCheckResponse>("/v1/access/entitlements/check", {
+        method: "POST",
+        body,
+      }),
+    getEntitlement: (entitlementId: string) =>
+      this.request<Record<string, unknown>>(`/v1/access/entitlements/${entitlementId}`),
+    createWebhook: (body: AccessWebhookCreateInput, idempotencyKey: string) =>
+      this.request<Record<string, unknown>>("/v1/access/webhooks", {
+        method: "POST",
+        body,
+        headers: idempotencyHeaders(idempotencyKey),
+      }),
+    createStripeBillingCheckout: (body: AccessBillingStripeCheckoutInput) =>
+      this.request<AccessBillingStripeCheckoutResponse>("/v1/access/billing/checkout/stripe", {
+        method: "POST",
+        body,
+        auth: "bearer",
+      }),
+  };
+
+  readonly payApi = this.access;
 
   readonly memberships = {
     list: (query?: ListMembershipsParams) =>
