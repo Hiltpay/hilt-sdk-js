@@ -44,7 +44,7 @@ const setup = await publicClient.payApi.agentBootstrap({
   requested_permissions: ["access:read", "access:write", "access:webhooks"]
 });
 
-await publicClient.payApi.submitAgentSetupManifest(setup.setup_intent.id, {
+await publicClient.payApi.submitAgentSetupManifest(setup.setup_intent_id, {
   setup_token: setup.setup_token,
   manifest: {
     app: { name: "Acme AI" },

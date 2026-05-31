@@ -126,7 +126,7 @@ export class HiltClient {
     this.bearerToken = options.bearerToken?.trim() || undefined;
     this.timeoutMs = options.timeoutMs ?? 20_000;
     this.fetchImpl = options.fetch ?? globalThis.fetch;
-    this.userAgent = options.userAgent ?? "hilt-typescript-sdk/1.0.1";
+    this.userAgent = options.userAgent ?? "hilt-typescript-sdk/1.0.2";
 
     if (typeof this.fetchImpl !== "function") {
       throw new Error("HiltClient requires fetch. Pass a custom fetch implementation if your runtime does not expose one.");
