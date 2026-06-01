@@ -322,6 +322,115 @@ export interface AccessAgentSetupApproveInput {
   confirm_owner_approval: boolean;
 }
 
+export interface AccessAgentSetupIntent extends HiltApiRecord {
+  id: string;
+  status: "sandbox_created" | "owner_approved" | "live_key_issued" | "expired" | "revoked" | string;
+  agent_name: string;
+  agent_platform?: string | null;
+  requested_use_case?: string | null;
+  contact_email?: string | null;
+  external_reference?: string | null;
+  requested_permissions: string[];
+  approved_permissions: string[];
+  sandbox_owner_id?: string | null;
+  approved_owner_id?: string | null;
+  sandbox_key_id?: string | null;
+  live_key_id?: string | null;
+  setup_url?: string | null;
+  expires_at?: string | null;
+  approved_at?: string | null;
+  live_key_issued_at?: string | null;
+  revoked_at?: string | null;
+  metadata?: Record<string, HiltJsonValue>;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface AccessAgentSetupFinding extends HiltApiRecord {
+  code: string;
+  message: string;
+  severity?: "info" | "warning" | "error" | "blocker" | string;
+  action?: string | null;
+}
+
+export interface AccessAgentPricingEstimate extends HiltApiRecord {
+  plan: "starter" | "growth" | "scale" | string;
+  monthly_fee_usd: number;
+  yearly_fee_usd: number;
+  tx_fee_rate: number;
+  estimated_transaction_fee_usd: number;
+  estimated_total_monthly_usd: number;
+}
+
+export interface AccessAgentPricingRecommendation extends HiltApiRecord {
+  surface: "hilt_pay_api" | string;
+  recommended_plan: "starter" | "growth" | "scale" | string;
+  confidence: "low" | "medium" | "high" | string;
+  reason: string;
+  estimated_monthly_volume_minor_units?: number | null;
+  estimated_monthly_volume_usd?: number | null;
+  estimated_monthly_payments?: number | null;
+  estimated_monthly_webhook_events?: number | null;
+  estimated_monthly_entitlement_checks?: number | null;
+  estimated_costs: AccessAgentPricingEstimate[];
+  upgrade_triggers: string[];
+  assumptions: string[];
+}
+
+export interface AccessAgentSetupNextApiCall extends HiltApiRecord {
+  method: string;
+  path: string;
+  mode?: string;
+  purpose?: string;
+}
+
+export interface AccessAgentNormalizedManifest extends HiltApiRecord {
+  app?: Record<string, HiltJsonValue>;
+  product?: Record<string, HiltJsonValue>;
+  payment_protocol?: "x402" | "hosted_checkout" | string;
+  settlement_rail?: "solana_usdc" | string;
+  protected_resource?: Record<string, HiltJsonValue>;
+  webhook?: Record<string, HiltJsonValue>;
+}
+
+export interface AccessAgentManifestEvaluation extends HiltApiRecord {
+  manifest_version: number;
+  can_create_sandbox: boolean;
+  can_issue_live_key: boolean;
+  can_create_live_sessions: boolean;
+  payment_protocol: "x402" | "hosted_checkout" | string;
+  settlement_rail: "solana_usdc" | string;
+  launch_live_rails: string[];
+  blockers: AccessAgentSetupFinding[];
+  warnings: AccessAgentSetupFinding[];
+  live_blockers: AccessAgentSetupFinding[];
+  pricing_recommendation: AccessAgentPricingRecommendation;
+  next_api_calls: AccessAgentSetupNextApiCall[];
+  normalized_manifest: AccessAgentNormalizedManifest;
+}
+
+export interface AccessAgentSetupResponse extends HiltApiRecord {
+  setup_intent: AccessAgentSetupIntent;
+  setup_intent_id: string;
+  owner_approval_url?: string | null;
+  setup_token?: string;
+  sandbox_api_key?: string;
+  sandbox_api_key_notice?: string;
+  sandbox_key_prefix?: string | null;
+  agent_can_continue_sandbox?: boolean;
+  owner_action_required?: boolean;
+  manifest_evaluation?: AccessAgentManifestEvaluation;
+  pricing_recommendation?: AccessAgentPricingRecommendation;
+}
+
+export interface AccessAgentSetupApproveResponse extends AccessAgentSetupResponse {
+  live_api_key?: string | null;
+  live_api_key_notice?: string | null;
+  live_key_prefix?: string | null;
+  activation_boundaries?: string[];
+  recommended_next_api_calls?: string[];
+}
+
 export interface AccessSetupReadinessParams {
   access_app_id?: string;
   product_id?: string;
@@ -473,6 +582,15 @@ export type HiltPayApiAgentBootstrapInput = AccessAgentBootstrapInput;
 export type HiltPayApiAgentSetupStatusInput = AccessAgentSetupStatusInput;
 export type HiltPayApiAgentSetupManifestInput = AccessAgentSetupManifestInput;
 export type HiltPayApiAgentSetupApproveInput = AccessAgentSetupApproveInput;
+export type HiltPayApiAgentSetupIntent = AccessAgentSetupIntent;
+export type HiltPayApiAgentSetupFinding = AccessAgentSetupFinding;
+export type HiltPayApiAgentPricingEstimate = AccessAgentPricingEstimate;
+export type HiltPayApiAgentPricingRecommendation = AccessAgentPricingRecommendation;
+export type HiltPayApiAgentSetupNextApiCall = AccessAgentSetupNextApiCall;
+export type HiltPayApiAgentNormalizedManifest = AccessAgentNormalizedManifest;
+export type HiltPayApiAgentManifestEvaluation = AccessAgentManifestEvaluation;
+export type HiltPayApiAgentSetupResponse = AccessAgentSetupResponse;
+export type HiltPayApiAgentSetupApproveResponse = AccessAgentSetupApproveResponse;
 export type HiltPayApiSetupReadinessParams = AccessSetupReadinessParams;
 export type HiltPayApiProductAvailableRailsParams = AccessProductAvailableRailsParams;
 export type HiltPayApiProductAvailableRailsByIdParams = AccessProductAvailableRailsByIdParams;

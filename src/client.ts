@@ -2,8 +2,10 @@ import type {
   AddSupportMessageInput,
   AccessAppCreateInput,
   AccessAgentBootstrapInput,
+  AccessAgentSetupApproveResponse,
   AccessAgentSetupApproveInput,
   AccessAgentSetupManifestInput,
+  AccessAgentSetupResponse,
   AccessAgentSetupStatusInput,
   AccessBillingStripeCheckoutInput,
   AccessBillingStripeCheckoutResponse,
@@ -190,25 +192,25 @@ export class HiltClient {
 
   readonly access = {
     agentBootstrap: (body: AccessAgentBootstrapInput) =>
-      this.request<Record<string, unknown>>("/v1/access/agent-bootstrap", {
+      this.request<AccessAgentSetupResponse>("/v1/access/agent-bootstrap", {
         method: "POST",
         body,
         auth: "none",
       }),
     getAgentSetupStatus: (setupIntentId: string, body: AccessAgentSetupStatusInput) =>
-      this.request<Record<string, unknown>>(`/v1/access/agent-bootstrap/${setupIntentId}/status`, {
+      this.request<AccessAgentSetupResponse>(`/v1/access/agent-bootstrap/${setupIntentId}/status`, {
         method: "POST",
         body,
         auth: "none",
       }),
     submitAgentSetupManifest: (setupIntentId: string, body: AccessAgentSetupManifestInput) =>
-      this.request<Record<string, unknown>>(`/v1/access/agent-bootstrap/${setupIntentId}/manifest`, {
+      this.request<AccessAgentSetupResponse>(`/v1/access/agent-bootstrap/${setupIntentId}/manifest`, {
         method: "POST",
         body,
         auth: "none",
       }),
     approveAgentSetup: (setupIntentId: string, body: AccessAgentSetupApproveInput) =>
-      this.request<Record<string, unknown>>(`/v1/access/agent-bootstrap/${setupIntentId}/approve`, {
+      this.request<AccessAgentSetupApproveResponse>(`/v1/access/agent-bootstrap/${setupIntentId}/approve`, {
         method: "POST",
         body,
         auth: "bearer",
