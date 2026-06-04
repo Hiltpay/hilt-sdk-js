@@ -37,7 +37,7 @@ For source review and approved public snapshots, use the GitHub repository and
 
 ### Agent-first Hilt Pay API bootstrap
 
-Public launch settlement is Solana USDC. The `payment_protocol: "x402"` field describes the protected-resource HTTP 402 flow.
+Current public live settlement is Solana USDC. The `payment_protocol: "x402"` field describes the protected-resource HTTP 402 flow.
 
 ```ts
 import { HiltClient } from "@hiltpay/sdk";
@@ -139,6 +139,97 @@ const cancelled = await client.payApi.confirmNativeSubscriptionCancel(
 
 console.log(subscription.status, cancelIntent.status, cancelled.status);
 ```
+
+### Sandbox session helpers
+
+```ts
+const sandbox = await client.payApi.createSandboxPaymentSession(
+  {
+    external_product_id: "pro-api",
+    external_customer_id: "cust_123",
+    rail: "solana_usdc",
+    confirm_sandbox_mode: true
+  },
+  { idempotencyKey: "sandbox-session-cust-123-pro-api-001" }
+);
+
+if (!sandbox.payment_session?.id) {
+  throw new Error("Sandbox session id missing from Hilt response");
+}
+
+const confirmed = await client.payApi.confirmSandboxPaymentSession(
+  sandbox.payment_session.id,
+  { proof: "sandbox-confirmed-access" },
+  { idempotencyKey: "sandbox-confirm-cust-123-pro-api-001" }
+);
+
+console.log(confirmed.entitlement);
+```
+
+### Webhook verification and routing
+
+```ts
+import { constructWebhookEvent, createWebhookRouter } from "@hiltpay/sdk";
+
+const router = createWebhookRouter()
+  .on("payment.confirmed", async (event) => {
+    await grantAccess(event.data);
+  })
+  .on("membership.expired", async (event) => {
+    await removeAccess(event.data);
+  });
+
+export async function POST(request: Request) {
+  const rawBody = await request.text();
+  const event = await constructWebhookEvent(
+    rawBody,
+    request.headers.get("X-Hilt-Signature"),
+    process.env.HILT_WEBHOOK_SECRET!
+  );
+
+  await router.dispatch(event);
+  return Response.json({ ok: true });
+}
+```
+
+Hilt signs `<timestamp>.<raw_json_body>` and sends the signature as `X-Hilt-Signature: t=<unix_timestamp>,v1=<hex_hmac_sha256>`.
+
+### Error handling
+
+```ts
+import { HiltApiError } from "@hiltpay/sdk";
+
+try {
+  await client.payApi.createPaymentSession(body, { idempotencyKey: "session-001" });
+} catch (error) {
+  if (error instanceof HiltApiError) {
+    console.error(error.code, error.statusCode, error.requestId, error.retryable, error.docsUrl);
+  }
+}
+```
+
+`HiltApiError` includes the public error code, HTTP status, Hilt request id when available, retryability, docs URL, and safe response details.
+
+The error catalog lives at `https://docs.hilt.so/developers/errors`. SDK `docsUrl` values point to anchors such as `#payment-failed`, `#idempotency-in-progress`, and `#request-timeout`.
+
+### Subscription helper boundary
+
+The SDK exposes the current public native subscription routes: read an authorization, create a cancellation intent, and confirm the signed cancellation. Public endpoints for list, pause, resume, or browser-safe customer management sessions are not exposed yet, so the SDK does not fake those methods. Build recurring access today with a recurring product, a payment session, signed webhooks, and entitlement checks.
+
+Proposed backend contract for future high-level subscription helpers:
+
+```text
+POST /v1/access/subscriptions
+GET  /v1/access/subscriptions/{subscription_id}
+GET  /v1/access/subscriptions
+POST /v1/access/subscriptions/{subscription_id}/pause
+POST /v1/access/subscriptions/{subscription_id}/resume
+POST /v1/access/subscriptions/{subscription_id}/cancel
+POST /v1/access/customer-sessions
+POST /v1/access/sandbox/subscriptions/{subscription_id}/advance-period
+```
+
+The browser-facing contract should return only a short-lived customer token or hosted management URL. It must never expose a Hilt API key in browser code.
 
 ## Quick start
 

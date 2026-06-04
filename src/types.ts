@@ -22,6 +22,7 @@ export interface HiltRequestOptions {
   query?: Record<string, QueryValue>;
   body?: unknown;
   headers?: Record<string, string>;
+  idempotencyKey?: string;
   responseType?: "json" | "text" | "arrayBuffer" | "raw";
   signal?: AbortSignal;
 }
@@ -33,6 +34,10 @@ export interface HiltClientOptions {
   timeoutMs?: number;
   fetch?: typeof fetch;
   userAgent?: string;
+}
+
+export interface HiltIdempotencyOptions {
+  idempotencyKey: string;
 }
 
 export interface MembershipConfigInput {
@@ -502,6 +507,22 @@ export interface AccessPaymentSessionCreateInput {
   metadata?: Record<string, HiltJsonValue>;
 }
 
+export interface AccessSandboxPaymentSessionCreateInput {
+  product_id?: string | null;
+  external_product_id?: string | null;
+  external_customer_id?: string | null;
+  wallet?: string | null;
+  email?: string | null;
+  rail?: string | null;
+  ttl_minutes?: number;
+  confirm_sandbox_mode?: boolean;
+  metadata?: Record<string, HiltJsonValue>;
+}
+
+export interface AccessSandboxPaymentSessionConfirmInput {
+  proof: string;
+}
+
 export interface AccessPaymentProofSubmitInput {
   product_id?: string | null;
   external_product_id?: string | null;
@@ -515,6 +536,29 @@ export interface AccessPaymentProofSubmitInput {
   amount_minor_units?: number | null;
   livemode?: boolean;
   metadata?: Record<string, HiltJsonValue>;
+}
+
+export interface HiltAccessPaymentSession extends HiltApiRecord {
+  id?: string;
+  status?: string;
+  checkout_url?: string | null;
+  payment_requirement?: HiltJsonValue | null;
+  rail_id?: string | null;
+  payment_protocol?: string | null;
+  settlement_rail_id?: string | null;
+}
+
+export interface HiltAccessPaymentSessionResponse extends HiltApiRecord {
+  payment_session?: HiltAccessPaymentSession;
+  pending_entitlement?: HiltApiRecord | null;
+  entitlement?: HiltApiRecord | null;
+  rail?: HiltApiRecord | null;
+  payment_session_options?: HiltApiRecord | null;
+}
+
+export interface HiltAccessSandboxPaymentSessionResponse extends HiltAccessPaymentSessionResponse {
+  sandbox_session?: HiltApiRecord | null;
+  proof?: string | null;
 }
 
 export interface AccessEntitlementCheckInput {
@@ -646,6 +690,8 @@ export type HiltPayApiNativeSubscriptionCancelConfirmInput = AccessNativeSubscri
 export type HiltPayApiAppCreateInput = AccessAppCreateInput;
 export type HiltPayApiProductCreateInput = AccessProductCreateInput;
 export type HiltPayApiPaymentSessionCreateInput = AccessPaymentSessionCreateInput;
+export type HiltPayApiSandboxPaymentSessionCreateInput = AccessSandboxPaymentSessionCreateInput;
+export type HiltPayApiSandboxPaymentSessionConfirmInput = AccessSandboxPaymentSessionConfirmInput;
 export type HiltPayApiPaymentProofSubmitInput = AccessPaymentProofSubmitInput;
 export type HiltPayApiEntitlementCheckInput = AccessEntitlementCheckInput;
 export type HiltPayApiWebhookCreateInput = AccessWebhookCreateInput;
@@ -654,6 +700,9 @@ export type HiltPayApiBillingStripeCheckoutResponse = AccessBillingStripeCheckou
 export type HiltPayApiApp = HiltAccessApp;
 export type HiltPayApiProduct = HiltAccessProduct;
 export type HiltPayApiEntitlementCheckResponse = HiltAccessEntitlementCheckResponse;
+export type HiltPayApiPaymentSession = HiltAccessPaymentSession;
+export type HiltPayApiPaymentSessionResponse = HiltAccessPaymentSessionResponse;
+export type HiltPayApiSandboxPaymentSessionResponse = HiltAccessSandboxPaymentSessionResponse;
 export type HiltPayApiNativeSubscription = HiltAccessNativeSubscription;
 export type HiltPayApiNativeSubscriptionCancelIntentResponse = HiltAccessNativeSubscriptionCancelIntentResponse;
 export type HiltPayApiNativeSubscriptionCancelConfirmResponse = HiltAccessNativeSubscriptionCancelConfirmResponse;

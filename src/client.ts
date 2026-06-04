@@ -12,6 +12,8 @@ import type {
   AccessEntitlementCheckInput,
   AccessPaymentProofSubmitInput,
   AccessPaymentSessionCreateInput,
+  AccessSandboxPaymentSessionConfirmInput,
+  AccessSandboxPaymentSessionCreateInput,
   AccessNativeSubscriptionCancelConfirmInput,
   AccessNativeSubscriptionCancelIntentInput,
   AccessProductAvailableRailsByIdParams,
@@ -32,9 +34,12 @@ import type {
   HiltAccessNativeSubscription,
   HiltAccessNativeSubscriptionCancelConfirmResponse,
   HiltAccessNativeSubscriptionCancelIntentResponse,
+  HiltAccessPaymentSessionResponse,
   HiltAccessProduct,
   HiltAccessRail,
+  HiltAccessSandboxPaymentSessionResponse,
   HiltClientOptions,
+  HiltIdempotencyOptions,
   HiltMembership,
   HiltMembershipListResponse,
   HiltPayment,
@@ -68,20 +73,9 @@ import type {
   WebhookEventsParams,
   WebhookTimelineParams,
 } from "./types.js";
+import { HILT_ERROR_CODES, HiltApiError, HiltError } from "./errors.js";
 
-export class HiltApiError extends Error {
-  readonly statusCode: number;
-  readonly errorCode?: string;
-  readonly details?: unknown;
-
-  constructor(statusCode: number, message: string, errorCode?: string, details?: unknown) {
-    super(message);
-    this.name = "HiltApiError";
-    this.statusCode = statusCode;
-    this.errorCode = errorCode;
-    this.details = details;
-  }
-}
+export { HiltApiError, HiltError } from "./errors.js";
 
 function normalizeBaseUrl(value: string | undefined): string {
   const fallback = "https://api.hilt.so";
@@ -110,13 +104,119 @@ function asQuery<T extends object | undefined>(value: T): Record<string, QueryVa
 }
 
 type AuthMode = NonNullable<HiltRequestOptions["auth"]>;
+type IdempotencyInput = string | HiltIdempotencyOptions;
 
-function idempotencyHeaders(idempotencyKey: string): Record<string, string> {
-  const normalized = idempotencyKey.trim();
-  if (!normalized) {
-    throw new Error("Hilt Pay API write calls require an idempotency key.");
+function resolveIdempotencyKey(value: IdempotencyInput): string {
+  return typeof value === "string" ? value : value.idempotencyKey;
+}
+
+function idempotencyHeaders(idempotencyKey: IdempotencyInput): Record<string, string> {
+  const normalized = resolveIdempotencyKey(idempotencyKey).trim();
+  if (normalized.length < 8) {
+    throw new HiltError({
+      code: HILT_ERROR_CODES.idempotencyKeyRequired,
+      message: "Write requests require an Idempotency-Key header of at least 8 characters.",
+      statusCode: 400,
+      retryable: false,
+      docsUrl: docsUrlForCode(HILT_ERROR_CODES.idempotencyKeyRequired),
+    });
+  }
+  if (normalized.length > 255) {
+    throw new HiltError({
+      code: HILT_ERROR_CODES.idempotencyKeyTooLong,
+      message: "Idempotency-Key must be 255 characters or fewer.",
+      statusCode: 400,
+      retryable: false,
+      docsUrl: docsUrlForCode(HILT_ERROR_CODES.idempotencyKeyTooLong),
+    });
+  }
+  if ([...normalized].some((char) => {
+    const code = char.charCodeAt(0);
+    return code < 33 || code === 127 || code > 126;
+  })) {
+    throw new HiltError({
+      code: HILT_ERROR_CODES.idempotencyKeyInvalid,
+      message: "Idempotency-Key must be visible ASCII without whitespace.",
+      statusCode: 400,
+      retryable: false,
+      docsUrl: docsUrlForCode(HILT_ERROR_CODES.idempotencyKeyInvalid),
+    });
   }
   return { "Idempotency-Key": normalized };
+}
+
+const SAFE_RESPONSE_HEADERS = [
+  "content-type",
+  "retry-after",
+  "x-request-id",
+  "x-hilt-request-id",
+  "x-ratelimit-limit",
+  "x-ratelimit-remaining",
+  "x-ratelimit-reset",
+];
+
+function safeResponseHeaders(headers: Headers): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const name of SAFE_RESPONSE_HEADERS) {
+    const value = headers.get(name);
+    if (value) {
+      result[name] = value;
+    }
+  }
+  return result;
+}
+
+function requestIdFromHeaders(headers: Headers): string | undefined {
+  return (
+    headers.get("x-hilt-request-id") ??
+    headers.get("x-request-id") ??
+    headers.get("request-id") ??
+    undefined
+  );
+}
+
+function docsUrlForCode(code: string | undefined): string | undefined {
+  if (!code) {
+    return undefined;
+  }
+  return `https://docs.hilt.so/developers/errors#${code.replace(/_/g, "-")}`;
+}
+
+function valueAsRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function stringField(data: Record<string, unknown> | undefined, ...keys: string[]): string | undefined {
+  if (!data) {
+    return undefined;
+  }
+  for (const key of keys) {
+    const value = data[key];
+    if (typeof value === "string" && value.trim()) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+function retryableFrom(statusCode: number, code: string | undefined, payload: unknown): boolean {
+  const data = valueAsRecord(payload);
+  if (typeof data?.retryable === "boolean") {
+    return data.retryable;
+  }
+  if (code === HILT_ERROR_CODES.idempotencyConflict) {
+    return false;
+  }
+  if (
+    code === HILT_ERROR_CODES.rateLimited ||
+    code === HILT_ERROR_CODES.idempotencyInProgress ||
+    code === HILT_ERROR_CODES.idempotencyRace
+  ) {
+    return true;
+  }
+  return statusCode === 408 || statusCode === 409 || statusCode === 425 || statusCode === 429 || statusCode >= 500;
 }
 
 export class HiltClient {
@@ -224,7 +324,7 @@ export class HiltClient {
       this.request<{ default_rail: string; rails: HiltAccessRail[] }>("/v1/access/rails"),
     listRailSettings: () =>
       this.request<Record<string, unknown>>("/v1/access/rail-settings"),
-    updateRailSetting: (railId: string, body: AccessRailSettingUpdateInput, idempotencyKey: string) =>
+    updateRailSetting: (railId: string, body: AccessRailSettingUpdateInput, idempotencyKey: IdempotencyInput) =>
       this.request<Record<string, unknown>>(`/v1/access/rail-settings/${railId}`, {
         method: "PUT",
         body,
@@ -254,7 +354,7 @@ export class HiltClient {
     confirmNativeSubscriptionCancel: (
       authorizationId: string,
       body: AccessNativeSubscriptionCancelConfirmInput,
-      idempotencyKey: string,
+      idempotencyKey: IdempotencyInput,
     ) =>
       this.request<HiltAccessNativeSubscriptionCancelConfirmResponse>(
         `/v1/access/native-subscriptions/${authorizationId}/cancel-confirm`,
@@ -264,13 +364,13 @@ export class HiltClient {
           headers: idempotencyHeaders(idempotencyKey),
         },
       ),
-    createApp: (body: AccessAppCreateInput, idempotencyKey: string) =>
+    createApp: (body: AccessAppCreateInput, idempotencyKey: IdempotencyInput) =>
       this.request<{ app: HiltAccessApp; rail: HiltAccessRail }>("/v1/access/apps", {
         method: "POST",
         body,
         headers: idempotencyHeaders(idempotencyKey),
       }),
-    createProduct: (body: AccessProductCreateInput, idempotencyKey: string) =>
+    createProduct: (body: AccessProductCreateInput, idempotencyKey: IdempotencyInput) =>
       this.request<{
         access_product: HiltAccessProduct;
         hilt_product: HiltProduct;
@@ -280,13 +380,32 @@ export class HiltClient {
         body,
         headers: idempotencyHeaders(idempotencyKey),
       }),
-    createPaymentSession: (body: AccessPaymentSessionCreateInput, idempotencyKey: string) =>
-      this.request<Record<string, unknown>>("/v1/access/payment-sessions", {
+    createPaymentSession: (body: AccessPaymentSessionCreateInput, idempotencyKey: IdempotencyInput) =>
+      this.request<HiltAccessPaymentSessionResponse>("/v1/access/payment-sessions", {
         method: "POST",
         body,
         headers: idempotencyHeaders(idempotencyKey),
       }),
-    submitPaymentProof: (body: AccessPaymentProofSubmitInput, idempotencyKey: string) =>
+    createSandboxPaymentSession: (
+      body: AccessSandboxPaymentSessionCreateInput,
+      idempotencyKey: IdempotencyInput,
+    ) =>
+      this.request<HiltAccessSandboxPaymentSessionResponse>("/v1/access/sandbox/payment-sessions", {
+        method: "POST",
+        body,
+        headers: idempotencyHeaders(idempotencyKey),
+      }),
+    confirmSandboxPaymentSession: (
+      sandboxSessionId: string,
+      body: AccessSandboxPaymentSessionConfirmInput,
+      idempotencyKey: IdempotencyInput,
+    ) =>
+      this.request<HiltAccessSandboxPaymentSessionResponse>(`/v1/access/sandbox/payment-sessions/${sandboxSessionId}/confirm`, {
+        method: "POST",
+        body,
+        headers: idempotencyHeaders(idempotencyKey),
+      }),
+    submitPaymentProof: (body: AccessPaymentProofSubmitInput, idempotencyKey: IdempotencyInput) =>
       this.request<Record<string, unknown>>("/v1/access/payment-proofs", {
         method: "POST",
         body,
@@ -299,7 +418,7 @@ export class HiltClient {
       }),
     getEntitlement: (entitlementId: string) =>
       this.request<Record<string, unknown>>(`/v1/access/entitlements/${entitlementId}`),
-    createWebhook: (body: AccessWebhookCreateInput, idempotencyKey: string) =>
+    createWebhook: (body: AccessWebhookCreateInput, idempotencyKey: IdempotencyInput) =>
       this.request<Record<string, unknown>>("/v1/access/webhooks", {
         method: "POST",
         body,
@@ -467,6 +586,9 @@ export class HiltClient {
     const headers = new Headers(options.headers);
     headers.set("Accept", "application/json");
     headers.set("User-Agent", this.userAgent);
+    if (options.idempotencyKey) {
+      headers.set("Idempotency-Key", options.idempotencyKey.trim());
+    }
 
     const authHeader = this.resolveAuthHeader(auth);
     if (authHeader) {
@@ -508,6 +630,20 @@ export class HiltClient {
           }
           return (await response.json()) as T;
       }
+    } catch (error) {
+      if (error instanceof HiltError) {
+        throw error;
+      }
+      if (error instanceof DOMException && error.name === "AbortError") {
+        throw new HiltError({
+          code: "request_timeout",
+          message: `Hilt request timed out after ${this.timeoutMs}ms.`,
+          retryable: true,
+          docsUrl: "https://docs.hilt.so/developers/errors",
+          cause: error,
+        });
+      }
+      throw error;
     } finally {
       clearTimeout(timeout);
     }
@@ -543,6 +679,7 @@ export class HiltClient {
     let payload: unknown = undefined;
     let message = `HTTP ${response.status}`;
     let code: string | undefined;
+    let docsUrl: string | undefined;
 
     try {
       if (contentType.includes("application/json")) {
@@ -558,18 +695,25 @@ export class HiltClient {
       message = payload;
     } else if (payload && typeof payload === "object") {
       const data = payload as Record<string, unknown>;
-      if (typeof data.detail === "string" && data.detail.trim()) {
-        message = data.detail;
-      } else if (typeof data.message === "string" && data.message.trim()) {
-        message = data.message;
-      }
-      if (typeof data.error === "string" && data.error.trim()) {
-        code = data.error;
-      } else if (typeof data.code === "string" && data.code.trim()) {
-        code = data.code;
-      }
+      const detail = valueAsRecord(data.detail);
+      message =
+        stringField(detail, "message", "detail") ??
+        (typeof data.detail === "string" && data.detail.trim() ? data.detail : undefined) ??
+        stringField(data, "message", "error_description") ??
+        message;
+      code = stringField(detail, "code", "error") ?? stringField(data, "code", "error");
+      docsUrl = stringField(detail, "docs_url", "docsUrl") ?? stringField(data, "docs_url", "docsUrl");
     }
 
-    return new HiltApiError(response.status, message, code, payload);
+    return new HiltApiError(response.status, message, code, payload, {
+      requestId: requestIdFromHeaders(response.headers),
+      retryable: retryableFrom(response.status, code, payload),
+      docsUrl: docsUrl ?? docsUrlForCode(code),
+      rawResponse: {
+        statusCode: response.status,
+        headers: safeResponseHeaders(response.headers),
+        body: payload,
+      },
+    });
   }
 }
