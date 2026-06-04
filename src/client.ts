@@ -12,6 +12,8 @@ import type {
   AccessEntitlementCheckInput,
   AccessPaymentProofSubmitInput,
   AccessPaymentSessionCreateInput,
+  AccessNativeSubscriptionCancelConfirmInput,
+  AccessNativeSubscriptionCancelIntentInput,
   AccessProductAvailableRailsByIdParams,
   AccessProductAvailableRailsParams,
   AccessProductCreateInput,
@@ -27,6 +29,9 @@ import type {
   CreateSupportTicketInput,
   HiltAccessApp,
   HiltAccessEntitlementCheckResponse,
+  HiltAccessNativeSubscription,
+  HiltAccessNativeSubscriptionCancelConfirmResponse,
+  HiltAccessNativeSubscriptionCancelIntentResponse,
   HiltAccessProduct,
   HiltAccessRail,
   HiltClientOptions,
@@ -128,7 +133,7 @@ export class HiltClient {
     this.bearerToken = options.bearerToken?.trim() || undefined;
     this.timeoutMs = options.timeoutMs ?? 20_000;
     this.fetchImpl = options.fetch ?? globalThis.fetch;
-    this.userAgent = options.userAgent ?? "hilt-typescript-sdk/1.0.2";
+    this.userAgent = options.userAgent ?? "hilt-typescript-sdk/1.0.3";
 
     if (typeof this.fetchImpl !== "function") {
       throw new Error("HiltClient requires fetch. Pass a custom fetch implementation if your runtime does not expose one.");
@@ -233,6 +238,32 @@ export class HiltClient {
       this.request<Record<string, unknown>>(`/v1/access/products/${productId}/available-rails`, {
         query: asQuery(query),
       }),
+    getNativeSubscription: (authorizationId: string) =>
+      this.request<HiltAccessNativeSubscription>(`/v1/access/native-subscriptions/${authorizationId}`),
+    createNativeSubscriptionCancelIntent: (
+      authorizationId: string,
+      body: AccessNativeSubscriptionCancelIntentInput = {},
+    ) =>
+      this.request<HiltAccessNativeSubscriptionCancelIntentResponse>(
+        `/v1/access/native-subscriptions/${authorizationId}/cancel-intent`,
+        {
+          method: "POST",
+          body,
+        },
+      ),
+    confirmNativeSubscriptionCancel: (
+      authorizationId: string,
+      body: AccessNativeSubscriptionCancelConfirmInput,
+      idempotencyKey: string,
+    ) =>
+      this.request<HiltAccessNativeSubscriptionCancelConfirmResponse>(
+        `/v1/access/native-subscriptions/${authorizationId}/cancel-confirm`,
+        {
+          method: "POST",
+          body,
+          headers: idempotencyHeaders(idempotencyKey),
+        },
+      ),
     createApp: (body: AccessAppCreateInput, idempotencyKey: string) =>
       this.request<{ app: HiltAccessApp; rail: HiltAccessRail }>("/v1/access/apps", {
         method: "POST",

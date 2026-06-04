@@ -4,6 +4,12 @@ Official TypeScript SDK for Hilt Pay Workspace and Hilt Pay API.
 
 Source: `https://github.com/Hiltpay/hilt-sdk-js`
 
+Agent discovery contract:
+
+- Agent manifest: `https://www.hilt.so/.well-known/hilt-agent.json`
+- Agent Discovery Standard: `https://www.hilt.so/agent-discovery-standard`
+- OpenAPI: `https://api.hilt.so/v1/openapi.json`
+
 This SDK wraps the same public merchant routes documented on `docs.hilt.so`:
 
 - products
@@ -14,6 +20,7 @@ This SDK wraps the same public merchant routes documented on `docs.hilt.so`:
 - support
 - webhooks
 - Hilt Pay API apps, products, entitlements, setup manifests, and agent bootstrap
+- native subscription state and cancellation helpers
 
 It is designed for Node 18+ and modern runtimes with `fetch`.
 
@@ -54,6 +61,10 @@ const manifest = await publicClient.payApi.submitAgentSetupManifest(setup.setup_
       title: "Pro API access",
       amount_minor_units: 79000000,
       default_rail: "solana_usdc",
+      billing_model: "recurring",
+      renewal_mode: "solana_native_subscription",
+      billing_interval_days: 30,
+      cancel_at_period_end: true,
       expected_monthly_payments: 120,
       expected_monthly_volume_usd: 9480
     },
@@ -86,7 +97,7 @@ const client = new HiltClient({
 
 const product = await client.products.create({
   product_type: "PAYMENT_LINK",
-  title: "Members lounge",
+  title: "30-day members lounge",
   amount_minor_units: 200000,
   token_mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
   merchant_wallet: "So1anaMerchantWallet1111111111111111111111111",
@@ -97,7 +108,7 @@ const product = await client.products.create({
     platform: "CUSTOM",
     identity_type: "WALLET",
     identity_required: false,
-    renewal_mode: "MANUAL",
+    renewal_mode: "ONE_OFF",
     billing_interval_days: 30,
     grace_period_days: 3
   }
@@ -106,13 +117,36 @@ const product = await client.products.create({
 console.log(product.id, product.slug);
 ```
 
+### Native subscription state and cancellation
+
+```ts
+const subscription = await client.payApi.getNativeSubscription("AUTHORIZATION_ID");
+
+const cancelIntent = await client.payApi.createNativeSubscriptionCancelIntent("AUTHORIZATION_ID", {
+  reason: "buyer_requested",
+  cancel_at_period_end: true
+});
+
+const cancelled = await client.payApi.confirmNativeSubscriptionCancel(
+  "AUTHORIZATION_ID",
+  {
+    cancel_tx_signature: "SOLANA_CANCEL_TRANSACTION_SIGNATURE",
+    reason: "buyer_requested",
+    immediate_revoke: false
+  },
+  "native-cancel-AUTHORIZATION_ID-001"
+);
+
+console.log(subscription.status, cancelIntent.status, cancelled.status);
+```
+
 ## Quick start
 
-1. Launch one real product in the Hilt app first.
-2. Create an API key for backend automation.
-3. Use the SDK to read or create the same product from your own system.
-4. Switch longer-running automation to Hilt webhooks.
-5. Use one tiny live payment before real traffic.
+1. Create or approve a Hilt Pay API setup intent.
+2. Use the SDK to create an app, product, payment session, and webhook.
+3. Use sandbox sessions to validate object handling without live money.
+4. Use entitlement checks before serving paid work.
+5. For recurring access, create products with `billing_model: "recurring"` and `renewal_mode: "solana_native_subscription"`.
 
 ## Auth surfaces
 

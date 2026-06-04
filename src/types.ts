@@ -42,7 +42,7 @@ export interface MembershipConfigInput {
   identity_type?: string | null;
   identity_label?: string | null;
   identity_required?: boolean | null;
-  renewal_mode?: "ONE_OFF" | "MANUAL" | string | null;
+  renewal_mode?: "ONE_OFF" | "AUTOMATIC" | string | null;
   billing_interval_days?: number | null;
   grace_period_days?: number | null;
   renewal_reminder_offsets_days?: number[] | null;
@@ -253,16 +253,10 @@ export interface HiltAccessRail extends HiltApiRecord {
   display_name: string;
   status:
     | "production_available"
-    | "private_alpha_available"
-    | "private_alpha_target"
     | "sandbox_available"
-    | "review_required"
-    | "kill_switched"
     | "verified_current"
     | "beta_disabled"
-    | "scaffold_disabled"
     | "experimental_disabled"
-    | "conditional_review"
     | string;
   network: string;
   settlement_asset: string;
@@ -448,6 +442,19 @@ export interface AccessProductAvailableRailsByIdParams {
   mode?: "live" | "sandbox" | string;
 }
 
+export interface AccessNativeSubscriptionCancelIntentInput {
+  reason?: string | null;
+  cancel_at_period_end?: boolean;
+}
+
+export interface AccessNativeSubscriptionCancelConfirmInput {
+  cancel_tx_signature?: string | null;
+  revoke_tx_signature?: string | null;
+  reason?: string | null;
+  immediate_revoke?: boolean;
+  verify_onchain?: boolean;
+}
+
 export interface AccessAppCreateInput {
   name: string;
   external_app_id?: string | null;
@@ -467,7 +474,12 @@ export interface AccessProductCreateInput {
   image_url?: string | null;
   amount_minor_units?: number | null;
   merchant_wallet?: string | null;
+  billing_model?: "one_off" | "recurring" | string;
+  renewal_mode?: "none" | "solana_native_subscription" | string | null;
+  billing_interval_days?: number | null;
   entitlement_duration_days?: number | null;
+  cancel_at_period_end?: boolean;
+  grace_period_days?: number | null;
   default_rail?: string;
   allowed_rails?: string[] | null;
   rail?: string | null;
@@ -576,6 +588,41 @@ export interface HiltAccessEntitlementCheckResponse extends HiltApiRecord {
   source?: string | null;
 }
 
+export interface HiltAccessNativeSubscription extends HiltApiRecord {
+  id: string;
+  status: string;
+  product_id?: string | null;
+  access_product_id?: string | null;
+  membership_id?: string | null;
+  entitlement_id?: string | null;
+  payer_wallet?: string | null;
+  amount_minor_units?: number | null;
+  billing_interval_days?: number | null;
+  current_period_start_at?: string | null;
+  current_period_end_at?: string | null;
+  cancel_at_period_end?: boolean;
+  cancelled_at?: string | null;
+  latest_payment_id?: string | null;
+  latest_receipt_id?: string | null;
+}
+
+export interface HiltAccessNativeSubscriptionCancelIntentResponse extends HiltApiRecord {
+  authorization_id: string;
+  status: string;
+  cancel_at_period_end: boolean;
+  reason?: string | null;
+  instructions?: HiltJsonValue[];
+  message?: string | null;
+}
+
+export interface HiltAccessNativeSubscriptionCancelConfirmResponse extends HiltApiRecord {
+  authorization_id: string;
+  status: string;
+  cancel_at_period_end?: boolean;
+  cancelled_at?: string | null;
+  current_period_end_at?: string | null;
+}
+
 export type HiltPayApiRail = HiltAccessRail;
 export type HiltPayApiRailSettingUpdateInput = AccessRailSettingUpdateInput;
 export type HiltPayApiAgentBootstrapInput = AccessAgentBootstrapInput;
@@ -594,6 +641,8 @@ export type HiltPayApiAgentSetupApproveResponse = AccessAgentSetupApproveRespons
 export type HiltPayApiSetupReadinessParams = AccessSetupReadinessParams;
 export type HiltPayApiProductAvailableRailsParams = AccessProductAvailableRailsParams;
 export type HiltPayApiProductAvailableRailsByIdParams = AccessProductAvailableRailsByIdParams;
+export type HiltPayApiNativeSubscriptionCancelIntentInput = AccessNativeSubscriptionCancelIntentInput;
+export type HiltPayApiNativeSubscriptionCancelConfirmInput = AccessNativeSubscriptionCancelConfirmInput;
 export type HiltPayApiAppCreateInput = AccessAppCreateInput;
 export type HiltPayApiProductCreateInput = AccessProductCreateInput;
 export type HiltPayApiPaymentSessionCreateInput = AccessPaymentSessionCreateInput;
@@ -605,6 +654,9 @@ export type HiltPayApiBillingStripeCheckoutResponse = AccessBillingStripeCheckou
 export type HiltPayApiApp = HiltAccessApp;
 export type HiltPayApiProduct = HiltAccessProduct;
 export type HiltPayApiEntitlementCheckResponse = HiltAccessEntitlementCheckResponse;
+export type HiltPayApiNativeSubscription = HiltAccessNativeSubscription;
+export type HiltPayApiNativeSubscriptionCancelIntentResponse = HiltAccessNativeSubscriptionCancelIntentResponse;
+export type HiltPayApiNativeSubscriptionCancelConfirmResponse = HiltAccessNativeSubscriptionCancelConfirmResponse;
 
 export interface HiltProduct extends HiltApiRecord {
   id: string;
