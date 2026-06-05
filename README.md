@@ -86,6 +86,45 @@ console.log(manifest.pricing_recommendation?.recommended_plan); // starter, grow
 console.log(setup.owner_approval_url); // send the owner here for the one-minute approval step
 ```
 
+### Check access before serving a resource
+
+Use this in every API route, middleware, worker, or tool call that needs to know whether a customer has access right now.
+
+```ts
+import { HiltClient } from "@hiltpay/sdk";
+
+const client = new HiltClient({
+  apiKey: process.env.HILT_API_KEY!,
+});
+
+export async function POST(request: Request) {
+  const externalCustomerId = request.headers.get("X-Customer-Id");
+
+  if (!externalCustomerId) {
+    return Response.json({ error: "missing_customer" }, { status: 400 });
+  }
+
+  const access = await client.payApi.checkEntitlement({
+    external_product_id: "pro-api",
+    external_customer_id: externalCustomerId,
+  });
+
+  if (!access.has_access) {
+    return Response.json(
+      {
+        error: "payment_required",
+        status: access.status,
+        reason: access.reason,
+        external_product_id: access.external_product_id,
+      },
+      { status: 402 }
+    );
+  }
+
+  return Response.json({ ok: true });
+}
+```
+
 ### Merchant workspace product
 
 ```ts
