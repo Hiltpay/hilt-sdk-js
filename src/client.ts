@@ -10,8 +10,10 @@ import type {
   AccessBillingStripeCheckoutInput,
   AccessBillingStripeCheckoutResponse,
   AccessEntitlementCheckInput,
+  AccessEntitlementConsumeInput,
   AccessPaymentProofSubmitInput,
   AccessPaymentSessionCreateInput,
+  AccessX402SettleInput,
   AccessSandboxPaymentSessionConfirmInput,
   AccessSandboxPaymentSessionCreateInput,
   AccessNativeSubscriptionCancelConfirmInput,
@@ -31,10 +33,12 @@ import type {
   CreateSupportTicketInput,
   HiltAccessApp,
   HiltAccessEntitlementCheckResponse,
+  HiltAccessEntitlementConsumeResponse,
   HiltAccessNativeSubscription,
   HiltAccessNativeSubscriptionCancelConfirmResponse,
   HiltAccessNativeSubscriptionCancelIntentResponse,
   HiltAccessPaymentSessionResponse,
+  HiltAccessX402SettleResponse,
   HiltAccessProduct,
   HiltAccessRail,
   HiltAccessSandboxPaymentSessionResponse,
@@ -233,7 +237,7 @@ export class HiltClient {
     this.bearerToken = options.bearerToken?.trim() || undefined;
     this.timeoutMs = options.timeoutMs ?? 20_000;
     this.fetchImpl = options.fetch ?? globalThis.fetch;
-    this.userAgent = options.userAgent ?? "hilt-typescript-sdk/1.0.3";
+    this.userAgent = options.userAgent ?? "hilt-typescript-sdk/1.2.0";
 
     if (typeof this.fetchImpl !== "function") {
       throw new Error("HiltClient requires fetch. Pass a custom fetch implementation if your runtime does not expose one.");
@@ -415,6 +419,18 @@ export class HiltClient {
       this.request<HiltAccessEntitlementCheckResponse>("/v1/access/entitlements/check", {
         method: "POST",
         body,
+      }),
+    consumeEntitlement: (body: AccessEntitlementConsumeInput, idempotencyKey: IdempotencyInput) =>
+      this.request<HiltAccessEntitlementConsumeResponse>("/v1/access/entitlements/consume", {
+        method: "POST",
+        body,
+        headers: idempotencyHeaders(idempotencyKey),
+      }),
+    settleX402: (body: AccessX402SettleInput, idempotencyKey: IdempotencyInput) =>
+      this.request<HiltAccessX402SettleResponse>("/v1/access/x402/settle", {
+        method: "POST",
+        body,
+        headers: idempotencyHeaders(idempotencyKey),
       }),
     getEntitlement: (entitlementId: string) =>
       this.request<Record<string, unknown>>(`/v1/access/entitlements/${entitlementId}`),

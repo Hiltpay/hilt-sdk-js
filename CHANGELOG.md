@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+- Add x402 V2 settlement and atomic metered-entitlement methods
+- Add typed Hilt x402 payment requirements and settlement responses
+- Add the dependency-free `@hiltpay/sdk/x402` header and payment-term validation helpers
+- Add product usage grants and entitlement usage response types
+
 ## 1.1.0
 
 - Add structured `HiltError` and `HiltApiError` models with request ids, retryability, docs URLs, and safe response details

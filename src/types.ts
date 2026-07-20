@@ -483,6 +483,8 @@ export interface AccessProductCreateInput {
   renewal_mode?: "none" | "solana_native_subscription" | string | null;
   billing_interval_days?: number | null;
   entitlement_duration_days?: number | null;
+  usage_unit?: string | null;
+  usage_units_per_payment?: number | null;
   cancel_at_period_end?: boolean;
   grace_period_days?: number | null;
   default_rail?: string;
@@ -571,6 +573,66 @@ export interface AccessEntitlementCheckInput {
   customer_reference?: string | null;
 }
 
+export interface AccessEntitlementConsumeInput extends AccessEntitlementCheckInput {
+  units?: number;
+  metadata?: Record<string, HiltJsonValue>;
+}
+
+export interface AccessX402SettleInput {
+  payment_session_id: string;
+  payment_signature: string;
+}
+
+export interface HiltX402AtomicTransfer {
+  role: "merchant" | "hilt_fee";
+  asset: string;
+  amount: string;
+  payTo: string;
+}
+
+export interface HiltX402Acceptance {
+  scheme: "exact" | "hilt-exact" | string;
+  network: string;
+  asset: string;
+  amount: string;
+  payTo: string;
+  maxTimeoutSeconds: number;
+  extra?: {
+    name?: string;
+    version?: string;
+    hilt?: {
+      paymentSessionId?: string;
+      settleUrl?: string;
+      atomicTransfers?: HiltX402AtomicTransfer[];
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+}
+
+export interface HiltX402PaymentRequired {
+  x402Version: 2;
+  resource: {
+    url: string;
+    description?: string;
+    mimeType?: string;
+    serviceName?: string;
+    tags?: string[];
+    iconUrl?: string;
+  };
+  accepts: HiltX402Acceptance[];
+  extensions?: Record<string, HiltJsonValue>;
+}
+
+export interface HiltX402PaymentPayload {
+  x402Version: 2;
+  resource: HiltX402PaymentRequired["resource"];
+  accepted: HiltX402Acceptance;
+  payload: {
+    transaction: string;
+  };
+}
+
 export interface AccessWebhookCreateInput {
   label: string;
   url: string;
@@ -630,6 +692,41 @@ export interface HiltAccessEntitlementCheckResponse extends HiltApiRecord {
   reason: string;
   last_payment_id?: string | null;
   source?: string | null;
+  usage?: {
+    unit: string;
+    granted: number;
+    consumed: number;
+    remaining: number;
+  } | null;
+}
+
+export interface HiltAccessEntitlementConsumeResponse extends HiltApiRecord {
+  consumed: boolean;
+  units: number;
+  usage: {
+    unit: string;
+    granted: number;
+    consumed: number;
+    remaining: number;
+  };
+  entitlement: HiltApiRecord;
+}
+
+export interface HiltAccessX402SettleResponse extends HiltApiRecord {
+  x402Version: 2;
+  payment_session_id: string;
+  payment_proof: HiltApiRecord;
+  settlement_evidence: HiltApiRecord;
+  receipt: HiltApiRecord;
+  entitlement: HiltApiRecord;
+  payment_response: {
+    success: true;
+    transaction: string;
+    network: string;
+  };
+  headers: {
+    "PAYMENT-RESPONSE": string;
+  };
 }
 
 export interface HiltAccessNativeSubscription extends HiltApiRecord {
@@ -694,12 +791,16 @@ export type HiltPayApiSandboxPaymentSessionCreateInput = AccessSandboxPaymentSes
 export type HiltPayApiSandboxPaymentSessionConfirmInput = AccessSandboxPaymentSessionConfirmInput;
 export type HiltPayApiPaymentProofSubmitInput = AccessPaymentProofSubmitInput;
 export type HiltPayApiEntitlementCheckInput = AccessEntitlementCheckInput;
+export type HiltPayApiEntitlementConsumeInput = AccessEntitlementConsumeInput;
+export type HiltPayApiX402SettleInput = AccessX402SettleInput;
 export type HiltPayApiWebhookCreateInput = AccessWebhookCreateInput;
 export type HiltPayApiBillingStripeCheckoutInput = AccessBillingStripeCheckoutInput;
 export type HiltPayApiBillingStripeCheckoutResponse = AccessBillingStripeCheckoutResponse;
 export type HiltPayApiApp = HiltAccessApp;
 export type HiltPayApiProduct = HiltAccessProduct;
 export type HiltPayApiEntitlementCheckResponse = HiltAccessEntitlementCheckResponse;
+export type HiltPayApiEntitlementConsumeResponse = HiltAccessEntitlementConsumeResponse;
+export type HiltPayApiX402SettleResponse = HiltAccessX402SettleResponse;
 export type HiltPayApiPaymentSession = HiltAccessPaymentSession;
 export type HiltPayApiPaymentSessionResponse = HiltAccessPaymentSessionResponse;
 export type HiltPayApiSandboxPaymentSessionResponse = HiltAccessSandboxPaymentSessionResponse;

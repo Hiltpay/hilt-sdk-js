@@ -9,6 +9,8 @@ Agent discovery contract:
 - Agent manifest: `https://www.hilt.so/.well-known/hilt-agent.json`
 - Agent Discovery Standard: `https://www.hilt.so/agent-discovery-standard`
 - OpenAPI: `https://api.hilt.so/v1/openapi.json`
+- Grok Build guide: `https://docs.hilt.so/developers/grok-build`
+- Runnable Next.js example: `https://github.com/Hiltpay/hilt-developer-assets/tree/main/examples/grok-build-nextjs`
 
 This SDK wraps the same public merchant routes documented on `docs.hilt.so`:
 
@@ -21,6 +23,7 @@ This SDK wraps the same public merchant routes documented on `docs.hilt.so`:
 - webhooks
 - Hilt Pay API apps, products, entitlements, setup manifests, and agent bootstrap
 - native subscription state and cancellation helpers
+- x402 V2 settlement and atomic metered-entitlement consumption
 
 It is designed for Node 18+ and modern runtimes with `fetch`.
 
@@ -34,6 +37,31 @@ For source review and approved public snapshots, use the GitHub repository and
 `hilt-developer-assets` repository.
 
 ## Example
+
+### Metered agent requests
+
+Create products with `usage_unit` and `usage_units_per_payment`, then consume a unit before serving each billable request:
+
+```ts
+const usage = await client.payApi.consumeEntitlement(
+  {
+    external_product_id: "research-calls",
+    external_customer_id: "agent_42",
+    units: 1,
+    metadata: { request_id: "req_01J..." },
+  },
+  { idempotencyKey: "req_01J..." },
+);
+
+if (!usage.consumed) {
+  throw new Error("Usage was not consumed");
+}
+```
+
+Use `@hiltpay/sdk/x402` to decode Hilt's x402 V2 requirement, validate `hilt-exact` terms, and encode the signed Solana transaction as `PAYMENT-SIGNATURE`. Keep the Hilt API key on the protected-resource server; the buyer or agent wallet constructs and signs the payment transaction.
+
+Guide: `https://docs.hilt.so/developers/agent-micropayments`
+Complete example: `https://github.com/Hiltpay/hilt-developer-assets/tree/main/examples/agent-micropayments`
 
 ### Agent-first Hilt Pay API bootstrap
 

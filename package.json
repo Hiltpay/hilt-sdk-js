@@ -1,6 +1,6 @@
 {
   "name": "@hiltpay/sdk",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Official TypeScript SDK for Hilt Pay Workspace and Hilt Pay API.",
   "type": "module",
   "main": "./dist/index.js",
@@ -24,6 +24,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./x402": {
+      "types": "./dist/x402.d.ts",
+      "default": "./dist/x402.js"
     }
   },
   "scripts": {

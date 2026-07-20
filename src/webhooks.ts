@@ -186,4 +186,3 @@ export class HiltWebhookRouter {
 export function createWebhookRouter(): HiltWebhookRouter {
   return new HiltWebhookRouter();
 }
-
