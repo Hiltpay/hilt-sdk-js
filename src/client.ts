@@ -7,8 +7,6 @@ import type {
   AccessAgentSetupManifestInput,
   AccessAgentSetupResponse,
   AccessAgentSetupStatusInput,
-  AccessBillingStripeCheckoutInput,
-  AccessBillingStripeCheckoutResponse,
   AccessEntitlementCheckInput,
   AccessEntitlementConsumeInput,
   AccessPaymentProofSubmitInput,
@@ -237,7 +235,7 @@ export class HiltClient {
     this.bearerToken = options.bearerToken?.trim() || undefined;
     this.timeoutMs = options.timeoutMs ?? 20_000;
     this.fetchImpl = options.fetch ?? globalThis.fetch;
-    this.userAgent = options.userAgent ?? "hilt-typescript-sdk/1.2.0";
+    this.userAgent = options.userAgent ?? "hilt-typescript-sdk/1.3.0";
 
     if (typeof this.fetchImpl !== "function") {
       throw new Error("HiltClient requires fetch. Pass a custom fetch implementation if your runtime does not expose one.");
@@ -439,12 +437,6 @@ export class HiltClient {
         method: "POST",
         body,
         headers: idempotencyHeaders(idempotencyKey),
-      }),
-    createStripeBillingCheckout: (body: AccessBillingStripeCheckoutInput) =>
-      this.request<AccessBillingStripeCheckoutResponse>("/v1/access/billing/checkout/stripe", {
-        method: "POST",
-        body,
-        auth: "bearer",
       }),
   };
 

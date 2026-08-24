@@ -353,7 +353,7 @@ export interface AccessAgentSetupFinding extends HiltApiRecord {
 }
 
 export interface AccessAgentPricingEstimate extends HiltApiRecord {
-  plan: "starter" | "growth" | "scale" | string;
+  plan: "live" | "enterprise" | string;
   monthly_fee_usd: number;
   yearly_fee_usd: number;
   tx_fee_rate: number;
@@ -363,7 +363,7 @@ export interface AccessAgentPricingEstimate extends HiltApiRecord {
 
 export interface AccessAgentPricingRecommendation extends HiltApiRecord {
   surface: "hilt_pay_api" | string;
-  recommended_plan: "starter" | "growth" | "scale" | string;
+  recommended_plan: "live" | "enterprise" | string;
   confidence: "low" | "medium" | "high" | string;
   reason: string;
   estimated_monthly_volume_minor_units?: number | null;
@@ -387,7 +387,7 @@ export interface AccessAgentNormalizedManifest extends HiltApiRecord {
   app?: Record<string, HiltJsonValue>;
   product?: Record<string, HiltJsonValue>;
   payment_protocol?: "x402" | "hosted_checkout" | string;
-  settlement_rail?: "solana_usdc" | string;
+  settlement_rail?: "solana_usdc" | "solana_sol" | string;
   protected_resource?: Record<string, HiltJsonValue>;
   webhook?: Record<string, HiltJsonValue>;
 }
@@ -398,7 +398,7 @@ export interface AccessAgentManifestEvaluation extends HiltApiRecord {
   can_issue_live_key: boolean;
   can_create_live_sessions: boolean;
   payment_protocol: "x402" | "hosted_checkout" | string;
-  settlement_rail: "solana_usdc" | string;
+  settlement_rail: "solana_usdc" | "solana_sol" | string;
   launch_live_rails: string[];
   blockers: AccessAgentSetupFinding[];
   warnings: AccessAgentSetupFinding[];
@@ -542,12 +542,24 @@ export interface AccessPaymentProofSubmitInput {
 
 export interface HiltAccessPaymentSession extends HiltApiRecord {
   id?: string;
+  payment_id?: string | null;
+  session_id?: string | null;
   status?: string;
   checkout_url?: string | null;
+  expires_at?: string | null;
+  amount_minor_units?: number | null;
+  asset_symbol?: string | null;
+  asset_decimals?: number | null;
+  merchant_wallet?: string | null;
   payment_requirement?: HiltJsonValue | null;
   rail_id?: string | null;
+  rail?: string | null;
   payment_protocol?: string | null;
   settlement_rail_id?: string | null;
+  settlement_network?: string | null;
+  settlement_asset?: string | null;
+  phantom_mobile?: HiltJsonValue | null;
+  adapter?: HiltApiRecord | null;
 }
 
 export interface HiltAccessPaymentSessionResponse extends HiltApiRecord {
@@ -555,7 +567,10 @@ export interface HiltAccessPaymentSessionResponse extends HiltApiRecord {
   pending_entitlement?: HiltApiRecord | null;
   entitlement?: HiltApiRecord | null;
   rail?: HiltApiRecord | null;
+  selected_rail?: HiltApiRecord | null;
+  available_rails?: HiltApiRecord[];
   payment_session_options?: HiltApiRecord | null;
+  idempotent_replay?: boolean | null;
 }
 
 export interface HiltAccessSandboxPaymentSessionResponse extends HiltAccessPaymentSessionResponse {
@@ -639,20 +654,6 @@ export interface AccessWebhookCreateInput {
   subscribed_events?: string[];
   product_ids?: string[];
   metadata?: Record<string, HiltJsonValue>;
-}
-
-export interface AccessBillingStripeCheckoutInput {
-  plan: "starter" | "growth" | "scale";
-  interval?: "monthly" | "yearly";
-  success_url: string;
-  cancel_url: string;
-}
-
-export interface AccessBillingStripeCheckoutResponse {
-  session_id: string;
-  checkout_url: string;
-  plan: "starter" | "growth" | "scale" | string;
-  interval: "monthly" | "yearly" | string;
 }
 
 export interface HiltAccessApp extends HiltApiRecord {
@@ -794,8 +795,6 @@ export type HiltPayApiEntitlementCheckInput = AccessEntitlementCheckInput;
 export type HiltPayApiEntitlementConsumeInput = AccessEntitlementConsumeInput;
 export type HiltPayApiX402SettleInput = AccessX402SettleInput;
 export type HiltPayApiWebhookCreateInput = AccessWebhookCreateInput;
-export type HiltPayApiBillingStripeCheckoutInput = AccessBillingStripeCheckoutInput;
-export type HiltPayApiBillingStripeCheckoutResponse = AccessBillingStripeCheckoutResponse;
 export type HiltPayApiApp = HiltAccessApp;
 export type HiltPayApiProduct = HiltAccessProduct;
 export type HiltPayApiEntitlementCheckResponse = HiltAccessEntitlementCheckResponse;

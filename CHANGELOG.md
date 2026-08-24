@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+## 1.3.0 - 2026-08-24
+
+- Add native SOL as a typed Hilt Pay API settlement rail
+- Add typed hosted-session amount, asset, payout, expiry, and settlement fields
+- Align agent setup pricing types and examples with Live pay-as-you-go pricing
+- Remove the retired Hilt Pay API subscription-checkout helper
+
 ## 1.2.0
 
 - Add x402 V2 settlement and atomic metered-entitlement methods

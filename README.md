@@ -65,7 +65,29 @@ Complete example: `https://github.com/Hiltpay/hilt-developer-assets/tree/main/ex
 
 ### Agent-first Hilt Pay API bootstrap
 
-Current public live settlement is Solana USDC. The `payment_protocol: "x402"` field describes the protected-resource HTTP 402 flow.
+Hilt Pay API supports live Solana USDC and native SOL settlement. The `payment_protocol: "x402"` field describes the protected-resource HTTP 402 flow over Solana USDC; native SOL uses hosted payment sessions.
+
+### Native SOL hosted payment session
+
+Create a separate one-off product configured with `default_rail: "solana_sol"`, then create a buyer session:
+
+```ts
+const session = await client.payApi.createPaymentSession(
+  {
+    external_product_id: "native-sol-api-access",
+    external_customer_id: "cust_123",
+    wallet: buyerWallet,
+    rail: "solana_sol",
+  },
+  "session-cust-123-native-sol-001",
+);
+
+console.log(session.payment_session?.checkout_url);
+console.log(session.payment_session?.amount_minor_units); // lamports
+console.log(session.payment_session?.asset_symbol); // SOL
+```
+
+Send the buyer to the signed, expiring `checkout_url`. It is bound to the exact API-created payment session and pending entitlement. Hilt reuses that session through buyer-approved settlement, receipt creation, and entitlement activation. Live native SOL settlement costs 1% of a successful payment. Hilt x402 V2 and native subscriptions remain Solana USDC-only.
 
 ```ts
 import { HiltClient } from "@hiltpay/sdk";
@@ -110,7 +132,7 @@ const manifest = await publicClient.payApi.submitAgentSetupManifest(setup.setup_
   }
 });
 
-console.log(manifest.pricing_recommendation?.recommended_plan); // starter, growth, or scale
+console.log(manifest.pricing_recommendation?.recommended_plan); // live or enterprise
 console.log(setup.owner_approval_url); // send the owner here for the one-minute approval step
 ```
 
