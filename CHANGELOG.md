@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.4.0 - 2026-08-26
+
+- Add the framework-neutral `protectEndpoint` server wrapper for x402 challenge, settlement, and atomic metered usage
+- Add retry-safe request identity handling and prevent a settled request from creating a second payment session while usage is pending
+- Add `getHiltPaymentSessionId` for validating Hilt-bound payment signatures
+
 ## 1.3.0 - 2026-08-24
 
 - Add native SOL as a typed Hilt Pay API settlement rail

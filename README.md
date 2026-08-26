@@ -40,27 +40,26 @@ For source review and approved public snapshots, use the GitHub repository and
 
 ### Metered agent requests
 
-Create products with `usage_unit` and `usage_units_per_payment`, then consume a unit before serving each billable request:
+Protect a Fetch-compatible server route with the SDK wrapper:
 
 ```ts
-const usage = await client.payApi.consumeEntitlement(
-  {
-    external_product_id: "research-calls",
-    external_customer_id: "agent_42",
-    units: 1,
-    metadata: { request_id: "req_01J..." },
-  },
-  { idempotencyKey: "req_01J..." },
-);
+import { HiltClient, protectEndpoint } from "@hiltpay/sdk";
 
-if (!usage.consumed) {
-  throw new Error("Usage was not consumed");
-}
+const hilt = new HiltClient({ apiKey: process.env.HILT_API_KEY });
+
+export const POST = protectEndpoint({
+  client: hilt,
+  externalProductId: "research-calls",
+  handler: async () => {
+    const result = await runPaidResearch();
+    return Response.json(result);
+  },
+});
 ```
 
-Use `@hiltpay/sdk/x402` to decode Hilt's x402 V2 requirement, validate `hilt-exact` terms, and encode the signed Solana transaction as `PAYMENT-SIGNATURE`. Keep the Hilt API key on the protected-resource server; the buyer or agent wallet constructs and signs the payment transaction.
+The wrapper atomically consumes usage, returns Hilt's x402 V2 `PAYMENT-REQUIRED` challenge when payment is needed, settles a returned `PAYMENT-SIGNATURE`, and invokes the handler only after consumption succeeds. One payment can grant many usage units, so prepaid requests do not each need an on-chain transaction. The caller supplies stable customer and request IDs and reuses them for retries. Make handler side effects idempotent by request ID. Keep the Hilt API key on the protected-resource server; the buyer or agent wallet constructs and signs the Solana USDC payment transaction.
 
-Guide: `https://docs.hilt.so/developers/agent-micropayments`
+Guide: `https://docs.hilt.so/developers/protect-an-endpoint`
 Complete example: `https://github.com/Hiltpay/hilt-developer-assets/tree/main/examples/agent-micropayments`
 
 ### Agent-first Hilt Pay API bootstrap

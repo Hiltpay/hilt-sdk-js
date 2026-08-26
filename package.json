@@ -1,6 +1,6 @@
 {
   "name": "@hiltpay/sdk",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Official TypeScript SDK for Hilt Pay Workspace and Hilt Pay API.",
   "type": "module",
   "main": "./dist/index.js",
@@ -28,11 +28,16 @@
     "./x402": {
       "types": "./dist/x402.d.ts",
       "default": "./dist/x402.js"
+    },
+    "./protect": {
+      "types": "./dist/protect.d.ts",
+      "default": "./dist/protect.js"
     }
   },
   "scripts": {
     "prebuild": "node -e \"require('node:fs').rmSync('dist',{ recursive: true, force: true })\"",
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test test/*.test.mjs"
   },
   "keywords": [
     "hilt",

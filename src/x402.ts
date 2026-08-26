@@ -91,6 +91,15 @@ export function decodePaymentRequiredHeader(value: string): HiltX402PaymentRequi
   return parsed;
 }
 
+export function getHiltPaymentSessionId(paymentSignature: string): string {
+  const payload = decodeX402Header<HiltX402PaymentPayload>(paymentSignature);
+  const paymentSessionId = payload.accepted?.extra?.hilt?.paymentSessionId;
+  if (!paymentSessionId) {
+    throw new Error("PAYMENT-SIGNATURE is not bound to a Hilt payment session.");
+  }
+  return paymentSessionId;
+}
+
 export function createHiltExactPaymentSignature(
   paymentRequired: HiltX402PaymentRequired,
   signedTransactionBase64: string,
